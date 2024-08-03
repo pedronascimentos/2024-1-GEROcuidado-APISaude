@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   gerocuidado-saude-api-prod:
-    image: gerocuidadodev/gerocuidado-saude-api:latest
+    image: victorjorge/gerocuidado-saude-api:latest
     container_name: gerocuidado-saude-api-prod
     environment:
       - DB_HOST=gerocuidado-saude-db
