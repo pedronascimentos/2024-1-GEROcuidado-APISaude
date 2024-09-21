@@ -72,5 +72,16 @@ describe('CronService', () => {
     expect(service).toBeDefined();
   });
 
+  test('should call rotina service and send notification', async () => {
+    const spyPost = jest.spyOn(httpService, 'post').mockReturnValue(of(true as any));
+    const spyDeleteCronJob = jest.spyOn(schedulerRegistry, 'deleteCronJob');
+    await service.cronRotinas();
+  
+    // Verificando se foi chamado
+    expect(spyPost).toHaveBeenCalledTimes(2);
+  
+    // Verificando a remoção fictícia do cron job
+    expect(spyDeleteCronJob).toHaveBeenCalledWith('');
+  });
   
 });
