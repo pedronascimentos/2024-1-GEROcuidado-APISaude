@@ -69,7 +69,7 @@ describe('MetricaService', () => {
     
   });
   
-describe('findOne', () => {
+  describe('findOne', () => {
     it('should find a metrica by id', async () => {
       const id = 1;
       const metrica = new Metrica(metricatest);
@@ -111,61 +111,60 @@ describe('findOne', () => {
 
     const removed = await service.remove(1);
     expect(removed.id).toEqual(1);
-});
-
-describe('findAll', () => {
-  const Metrica = {
-      id: 1,
-      idMetrica: 1,
-  };
-
-  const order: OrderParams = {
-      column: 'id',
-      dir: 'ASC',
-  };
-
-  const ordering: Ordering = new Ordering(JSON.stringify(order));
-
-  const paginate: PaginationParams = {
-      limit: 10,
-      offset: 0,
-  };
-
-  const pagination: Pagination = new Pagination(paginate);
-
-  const filter: IMetricaFilter = {
-    idIdoso: 1,
-  };
-
-  const filtering = new Filtering<Metrica>(JSON.stringify(filter));
-
-  it('should findAll Metrica', async () => {
-      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue({
-          where: () => ({
-              limit: () => ({
-                  offset: () => ({
-                      orderBy: () => ({
-                          getManyAndCount: jest.fn().mockResolvedValueOnce([[Metrica], 1]),
-                      }),
-                  }),
-              }),
-          }),
-      } as any);
-
-      const { data, count } = await service.findAll(
-          filtering as any,
-          ordering,
-          pagination,
-      );
-      expect(count).toEqual(1);
-      expect((data as Metrica[])[0]).toEqual(Metrica);
-
-      const res = await service.findAll({}, ordering, pagination);
-      expect(res.count).toEqual(1);
-      expect((res.data as Metrica[])[0]).toEqual(Metrica);
   });
 
-});
+  describe('findAll', () => {
+    const Metrica = {
+        id: 1,
+        idMetrica: 1,
+    };
 
+    const order: OrderParams = {
+        column: 'id',
+        dir: 'ASC',
+    };
 
+    const ordering: Ordering = new Ordering(JSON.stringify(order));
+
+    const paginate: PaginationParams = {
+        limit: 10,
+        offset: 0,
+    };
+
+    const pagination: Pagination = new Pagination(paginate);
+
+    const filter: IMetricaFilter = {
+      idIdoso: 1,
+    };
+
+    const filtering = new Filtering<Metrica>(JSON.stringify(filter));
+
+    it('should findAll Metrica', async () => {
+        jest.spyOn(repository, 'createQueryBuilder').mockReturnValue({
+            where: () => ({
+                limit: () => ({
+                    offset: () => ({
+                        orderBy: () => ({
+                            getManyAndCount: jest.fn().mockResolvedValueOnce([[Metrica], 1]),
+                        }),
+                    }),
+                }),
+            }),
+        } as any);
+
+        const { data, count } = await service.findAll(
+            filtering as any,
+            ordering,
+            pagination,
+        );
+        expect(count).toEqual(1);
+        expect((data as Metrica[])[0]).toEqual(Metrica);
+
+        const res = await service.findAll({}, ordering, pagination);
+        expect(res.count).toEqual(1);
+        expect((res.data as Metrica[])[0]).toEqual(Metrica);
+    });
+
+  });
+  
 });
