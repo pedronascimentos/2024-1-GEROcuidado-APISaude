@@ -15,9 +15,8 @@ jest.mock('cron', () => {
 
 describe('CronService', () => {
   let service: CronService;
-  let rotinaService: RotinaService;
-  let schedulerRegistry: SchedulerRegistry;
   let httpService: HttpService;
+  let schedulerRegistry: SchedulerRegistry;
 
   const rotina = {
     idIdoso: 1,
@@ -83,5 +82,14 @@ describe('CronService', () => {
     // Verificando a remoção fictícia do cron job
     expect(spyDeleteCronJob).toHaveBeenCalledWith('');
   });
+
+  test('should initialize cron job on module init', () => {
+    const spyAddCronJob = jest.spyOn(service, 'addCronJob'); // Espiona o método addCronJob
+
+    service.onModuleInit(); // Chama o método que deve inicializar o cron job
+
+    expect(spyAddCronJob).toHaveBeenCalledWith('cronRotinas', '0 * * * * *', expect.any(Function)); // Verifica se addCronJob foi chamado com os parâmetros corretos
+  });
   
 });
+
