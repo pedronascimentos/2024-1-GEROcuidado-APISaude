@@ -167,4 +167,26 @@ describe('MetricaService', () => {
 
   });
   
+  describe('getSomaHidratacao', () => {
+    it('should calculate the total hydration value', async () => {
+      const id = 1;
+      const valor1 = { valor: '2' }; // Exemplo de valor
+      const valor2 = { valor: '3' }; // Outro exemplo de valor
+  
+      // Mock do repositório para retornar valores de hidratação
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([valor1, valor2]),
+      } as any);
+  
+      const result = await service.getSomaHidratacao(id);
+  
+      expect(result).toEqual(5); // 2 + 3 = 5
+      expect(repository.createQueryBuilder).toHaveBeenCalledWith('metrica');
+      expect(repository.createQueryBuilder().where).toHaveBeenCalledWith('metrica.id = :id', { id });
+    });
+  });
 });
