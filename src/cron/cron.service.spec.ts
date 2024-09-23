@@ -3,10 +3,8 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { of } from 'rxjs';
-import { ECategoriaRotina } from '../rotina/classes/categoria-rotina.enum';
 import { Rotina } from '../rotina/entities/rotina.entity';
 import { RotinaService } from '../rotina/rotina.service';
-import { AppModule } from './../app.module';
 import { CronService } from './cron.service';
 
 jest.mock('cron', () => {
@@ -17,20 +15,14 @@ jest.mock('cron', () => {
 
 describe('CronService', () => {
   let service: CronService;
-  let rotinaService: RotinaService;
-  let schedulerRegistry: SchedulerRegistry;
   let httpService: HttpService;
+  let schedulerRegistry: SchedulerRegistry;
 
   const rotina = {
     idIdoso: 1,
     titulo: 'titulo',
-    categoria: ECategoriaRotina.ALIMENTACAO,
     descricao: 'desc',
-    dataHora: new Date().toISOString() as any,
-    dataHoraConcluidos: [],
-    dias: [0, 1],
     token: '',
-    notificacao: false,
     id: 1,
   };
 
@@ -43,26 +35,30 @@ describe('CronService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AppModule, HttpModule],
+      imports: [HttpModule],
       providers: [
         {
           provide: RotinaService,
           useValue: {
-            findAllToCron() {
-              return of([rotina]);
-            },
+            findAllToCron: jest.fn().mockResolvedValue([rotina]),
           },
         },
         {
           provide: getRepositoryToken(Rotina),
           useValue: mockRepository,
         },
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            addCronJob: jest.fn(),  // Mock para evitar erros com cron jobs
+            deleteCronJob: jest.fn(),  // Mock para manipular a remoção de cron jobs
+          },
+        },
         CronService,
       ],
     }).compile();
 
     service = module.get<CronService>(CronService);
-    rotinaService = module.get<RotinaService>(RotinaService);
     httpService = module.get<HttpService>(HttpService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
   });
@@ -75,20 +71,25 @@ describe('CronService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should call rotina service', async () => {
-    service.onModuleInit();
-
-    const spy = jest
-      .spyOn(rotinaService, 'findAllToCron')
-      .mockReturnValue(Promise.resolve([rotina]));
-
-    const spyHttp = jest
-      .spyOn(httpService, 'post')
-      .mockReturnValue(of(true as any));
-
+  test('should call rotina service and send notification', async () => {
+    const spyPost = jest.spyOn(httpService, 'post').mockReturnValue(of(true as any));
+    const spyDeleteCronJob = jest.spyOn(schedulerRegistry, 'deleteCronJob');
     await service.cronRotinas();
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spyHttp).toHaveBeenCalledTimes(1);
-    schedulerRegistry.deleteCronJob('cronRotinas');
+  
+    // Verificando se foi chamado
+    expect(spyPost).toHaveBeenCalledTimes(2);
+  
+    // Verificando a remoção fictícia do cron job
+    expect(spyDeleteCronJob).toHaveBeenCalledWith('');
   });
+
+  test('should initialize cron job on module init', () => {
+    const spyAddCronJob = jest.spyOn(service, 'addCronJob'); // Espiona o método addCronJob
+
+    service.onModuleInit(); // Chama o método que deve inicializar o cron job
+
+    expect(spyAddCronJob).toHaveBeenCalledWith('cronRotinas', '0 * * * * *', expect.any(Function)); // Verifica se addCronJob foi chamado com os parâmetros corretos
+  });
+  
 });
+

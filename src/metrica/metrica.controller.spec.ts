@@ -40,6 +40,7 @@ describe('MetricaController', () => {
             remove: jest.fn(),
             update: jest.fn(),
             findAll: jest.fn(),
+            getSomaHidratacao: jest.fn(), // Adicione este método
           },
         },
         {
@@ -130,4 +131,16 @@ describe('MetricaController', () => {
       expect(data).toEqual([metrica]);
     });
   });
+
+  it('should get soma hidratacao', async () => {
+    const id = 1;
+    const expectedSoma = 10; // Valor esperado que você vai retornar do serviço
+  
+    jest.spyOn(service, 'getSomaHidratacao').mockReturnValue(Promise.resolve(expectedSoma));
+  
+    const response = await controller.getSomaHidratacao({ id });
+  
+    expect(response).toEqual(expectedSoma);
+  });
+  
 });

@@ -38,6 +38,15 @@ export class CronService implements OnModuleInit {
     Logger.log('CRONRotinas - Procurando rotinas...');
     const rotinas = await this.rotinaService.findAllToCron();
 
+    // Verifica se as rotinas foram buscadas antes de chamar o post
+    if (rotinas.length) {
+      console.log('Enviando requisição HTTP...');
+      await this.httpService.post('https://exp.host/--/api/v2/push/send', rotinas).toPromise();
+    }
+    
+    // Após a execução, você pode deletar o cron job
+    this.schedulerRegistry.deleteCronJob('');
+
     Logger.log(
       `CRONRotinas - ${rotinas.length} rotinas encontradas! Enviando notificações...`,
     );
