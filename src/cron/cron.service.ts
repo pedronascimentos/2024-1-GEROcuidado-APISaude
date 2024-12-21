@@ -9,18 +9,28 @@ import { RotinaService } from '../rotina/rotina.service';
 
 @Injectable()
 export class CronService implements OnModuleInit {
+  private readonly logger = new Logger(CronService.name);
+
   constructor(
-    private schedulerRegistry: SchedulerRegistry,
+    private readonly schedulerRegistry: SchedulerRegistry,
     private readonly rotinaService: RotinaService,
     private readonly httpService: HttpService,
-  ) {}
+  ) { }
 
   onModuleInit(): void {
     this.initCronJobRotinas();
   }
 
   private initCronJobRotinas(): void {
-    this.addCronJob('cronRotinas', '0 * * * * *', this.cronRotinas.bind(this));
+    const jobName = 'cronRotinas';
+    const cronExpression = '0 * * * * *'; // Executa a cada minuto (ajuste conforme necessário)
+
+    if (!this.schedulerRegistry.getCronJobs().has(jobName)) {
+      this.addCronJob(jobName, cronExpression, this.cronRotinas.bind(this));
+      this.logger.log(`Cron Job "${jobName}" inicializado.`);
+    } else {
+      this.logger.warn(`Cron Job "${jobName}" já está registrado.`);
+    }
   }
 
   addCronJob(
@@ -28,48 +38,47 @@ export class CronService implements OnModuleInit {
     cronExpression: string,
     callback: () => void | Promise<void>,
   ): void {
-    const job = new CronJob(`${cronExpression}`, callback);
+    const job = new CronJob(cronExpression, callback);
 
     this.schedulerRegistry.addCronJob(name, job);
     job.start();
+    this.logger.log(`Cron Job "${name}" adicionado e iniciado.`);
   }
 
   async cronRotinas(): Promise<void> {
-    Logger.log('CRONRotinas - Procurando rotinas...');
+    this.logger.log('CRONRotinas - Procurando rotinas...');
     const rotinas = await this.rotinaService.findAllToCron();
 
-    // Verifica se as rotinas foram buscadas antes de chamar o post
-    if (rotinas.length) {
-      console.log('Enviando requisição HTTP...');
-      await this.httpService.post('https://exp.host/--/api/v2/push/send', rotinas).toPromise();
-    }
-    
-    // Após a execução, você pode deletar o cron job
-    this.schedulerRegistry.deleteCronJob('');
-
-    Logger.log(
-      `CRONRotinas - ${rotinas.length} rotinas encontradas! Enviando notificações...`,
-    );
-
-    const promises: Promise<AxiosResponse>[] = [];
-
-    rotinas.forEach((rotina: Rotina) => {
-      const promise = lastValueFrom(
-        this.httpService.post('https://exp.host/--/api/v2/push/send', {
-          to: rotina.token,
-          sound: 'default',
-          title: rotina.titulo,
-          body: rotina.descricao,
-          data: {
-            id: rotina.id,
-          },
-        }),
+    if (rotinas.length > 0) {
+      this.logger.log(
+        `CRONRotinas - ${rotinas.length} rotinas encontradas! Enviando notificações...`,
       );
 
-      promises.push(promise);
-    });
+      const promises: Promise<AxiosResponse>[] = rotinas.map((rotina: Rotina) =>
+        lastValueFrom(
+          this.httpService.post('https://exp.host/--/api/v2/push/send', {
+            to: rotina.token,
+            sound: 'default',
+            title: rotina.titulo,
+            body: rotina.descricao,
+            data: {
+              id: rotina.id,
+            },
+          }),
+        ),
+      );
 
-    await Promise.all(promises);
-    Logger.log('CRONRotinas - Notificações enviadas!');
+      await Promise.all(promises);
+      this.logger.log('CRONRotinas - Notificações enviadas!');
+    } else {
+      this.logger.warn('CRONRotinas - Nenhuma rotina encontrada.');
+    }
+
+    // Deleta o Cron Job apenas se necessário
+    const jobName = 'cronRotinas';
+    if (this.schedulerRegistry.getCronJobs().has(jobName)) {
+      this.schedulerRegistry.deleteCronJob(jobName);
+      this.logger.log(`Cron Job "${jobName}" foi deletado.`);
+    }
   }
 }
